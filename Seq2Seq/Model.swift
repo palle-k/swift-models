@@ -230,55 +230,86 @@ struct Seq2Seq: Module {
         var currentDecoderState = decoderInputState
         var cumulativeAttnLogits = Tensor<Float>(zeros: [])
 
-        var outputLogits: Tensor<Float> = Tensor()
+        var outputLogits = Tensor<Float>()
 
-        if input.useTeacherForcing /* [seqlen, 1] */ {
-            let expectedSequence = input.expectedSequence
+        let expectedSequence = input.expectedSequence
+        
+        // MARK: Crash 1
+        // Assertion failed: (pullbackStructElements.count(field) && "Pullback struct element for this field does not exist!"), function getPullbackStructElement, file /Users/swiftninjas/s4tf/swift/lib/SILOptimizer/Mandatory/Differentiation.cpp, line 5127.
+//        if input.useTeacherForcing {} else {}
+
+        // MARK: Crash 1
+        // Assertion failed: (pullbackStructElements.count(field) && "Pullback struct element for this field does not exist!"), function getPullbackStructElement, file /Users/swiftninjas/s4tf/swift/lib/SILOptimizer/Mandatory/Differentiation.cpp, line 5127.
+//        for t in 0 ..< (expectedSequence.shape[0] - 1) {}
+           
+        // MARK: Crash 2
+        // Assertion failed: (lhs->getType() == rhs->getType() && "Adjoints must have equal types!"), function accumulateDirect, file /Users/swiftninjas/s4tf/swift/lib/SILOptimizer/Mandatory/Differentiation.cpp, line 6923.
+//        for t in 0 ..< (expectedSequence.shape[0] - 1) {
+//            let decoderInput = DecoderInput(
+//                token: expectedSequence[t + 1],
+//                previousState: currentDecoderState,
+//                encoderStates: encoded,
+//                cumulativeAttentionLogits: cumulativeAttnLogits
+//            )
+//            let output = decoder(decoderInput)
+//            currentDecoderState = output.state
+//            cumulativeAttnLogits = output.cumulativeAttentionLogits
+//
+//            if outputLogits.shape != [] {
+//                outputLogits = Tensor(stacking: [outputLogits, output.logits.reshaped(to: [1, 1, -1])], alongAxis: 0)
+//            } else {
+//                outputLogits = output.logits.reshaped(to: [1, 1, -1])
+//            }
+//        }
+
+        // MARK: Crash 2
+        // Assertion failed: (lhs->getType() == rhs->getType() && "Adjoints must have equal types!"), function accumulateDirect, file /Users/swiftninjas/s4tf/swift/lib/SILOptimizer/Mandatory/Differentiation.cpp, line 6923.
+//        if input.useTeacherForcing /* [seqlen, 1] */ {
 //            // teacher forcing
-            for t in 0 ..< (expectedSequence.shape[0] - 1) {
-                let decoderInput = DecoderInput(
-                    token: expectedSequence[t + 1],
-                    previousState: currentDecoderState,
-                    encoderStates: encoded,
-                    cumulativeAttentionLogits: cumulativeAttnLogits
-                )
-                let output = decoder(decoderInput)
-                currentDecoderState = output.state
-                cumulativeAttnLogits = output.cumulativeAttentionLogits
-
-                if outputLogits.shape != [] {
-                    outputLogits = Tensor(stacking: [outputLogits, output.logits.reshaped(to: [1, 1, -1])], alongAxis: 0)
-                } else {
-                    outputLogits = output.logits.reshaped(to: [1, 1, -1])
-                }
-            }
-        } else {
+//            for t in 0 ..< (expectedSequence.shape[0] - 1) {
+//                let decoderInput = DecoderInput(
+//                    token: expectedSequence[t + 1],
+//                    previousState: currentDecoderState,
+//                    encoderStates: encoded,
+//                    cumulativeAttentionLogits: cumulativeAttnLogits
+//                )
+//                let output = decoder(decoderInput)
+//                currentDecoderState = output.state
+//                cumulativeAttnLogits = output.cumulativeAttentionLogits
+//
+//                if outputLogits.shape != [] {
+//                    outputLogits = Tensor(stacking: [outputLogits, output.logits.reshaped(to: [1, 1, -1])], alongAxis: 0)
+//                } else {
+//                    outputLogits = output.logits.reshaped(to: [1, 1, -1])
+//                }
+//            }
+//        } else {
 //            // no teacher forcing
-            var previousToken = Tensor([input.startToken])
-
-            for t in 0 ..< input.maxLength {
-                let decoderInput = DecoderInput(
-                    token: previousToken,
-                    previousState: currentDecoderState,
-                    encoderStates: encoded,
-                    cumulativeAttentionLogits: cumulativeAttnLogits
-                )
-                let output = decoder(decoderInput)
-                currentDecoderState = output.state
-                cumulativeAttnLogits = output.cumulativeAttentionLogits
-                previousToken = output.logits.flattened().argmax()
-
-                if outputLogits.shape != [] {
-                    outputLogits = Tensor(stacking: [outputLogits, output.logits.reshaped(to: [1, 1, -1])], alongAxis: 0)
-                } else {
-                    outputLogits = output.logits.reshaped(to: [1, 1, -1])
-                }
-
-                if previousToken.scalars[0] == input.endToken {
-                    break
-                }
-            }
-        }
+//            var previousToken = Tensor([input.startToken])
+//
+//            for t in 0 ..< input.maxLength {
+//                let decoderInput = DecoderInput(
+//                    token: previousToken,
+//                    previousState: currentDecoderState,
+//                    encoderStates: encoded,
+//                    cumulativeAttentionLogits: cumulativeAttnLogits
+//                )
+//                let output = decoder(decoderInput)
+//                currentDecoderState = output.state
+//                cumulativeAttnLogits = output.cumulativeAttentionLogits
+//                previousToken = output.logits.flattened().argmax()
+//
+//                if outputLogits.shape != [] {
+//                    outputLogits = Tensor(stacking: [outputLogits, output.logits.reshaped(to: [1, 1, -1])], alongAxis: 0)
+//                } else {
+//                    outputLogits = output.logits.reshaped(to: [1, 1, -1])
+//                }
+//
+//                if previousToken.scalars[0] == input.endToken {
+//                    break
+//                }
+//            }
+//        }
 
         return outputLogits
     }
