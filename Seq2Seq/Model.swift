@@ -188,12 +188,12 @@ struct Decoder: Layer {
 }
 
 struct Seq2SeqInput {
-    var expectedSequence: Tensor<Int32>?
+    var expectedSequence: Tensor<Int32>
     var inputSequence: Tensor<Int32>
-    var compilerCrashWorkaroundStartOutputLogits: Tensor<Float>
     var maxLength: Int
     var startToken: Int32
     var endToken: Int32
+    var useTeacherForcing: Bool
 }
 
 struct Seq2Seq: Module {
@@ -230,10 +230,10 @@ struct Seq2Seq: Module {
         var currentDecoderState = decoderInputState
         var cumulativeAttnLogits = Tensor<Float>(zeros: [])
 
-        var outputLogits: Tensor<Float> = input.compilerCrashWorkaroundStartOutputLogits
+        var outputLogits: Tensor<Float> = Tensor()
 
-        if input.expectedSequence != nil /* [seqlen, 1] */ {
-            let expectedSequence = input.expectedSequence!
+        if input.useTeacherForcing /* [seqlen, 1] */ {
+            let expectedSequence = input.expectedSequence
 //            // teacher forcing
             for t in 0 ..< (expectedSequence.shape[0] - 1) {
                 let decoderInput = DecoderInput(
