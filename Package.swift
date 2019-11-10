@@ -18,6 +18,7 @@ let package = Package(
         .executable(name: "MiniGoDemo", targets: ["MiniGoDemo"]),
         .library(name: "MiniGo", targets: ["MiniGo"]),
         .executable(name: "GAN", targets: ["GAN"]),
+        .executable(name: "Seq2Seq", targets: ["Seq2Seq"]),
     ],
     targets: [
         .target(name: "ImageClassificationModels", path: "Models/ImageClassification"),
@@ -45,5 +46,6 @@ let package = Package(
         .testTarget(name: "ImageClassificationTests", dependencies: ["ImageClassificationModels"]),
         .target(name: "Transformer", path: "Transformer"),
         .target(name: "GAN", dependencies: ["Datasets", "ModelSupport"], path: "GAN"),
+        .target(name: "Seq2Seq", path: "Seq2Seq"),
     ]
 )
