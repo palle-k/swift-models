@@ -190,6 +190,7 @@ struct Decoder: Layer {
 struct Seq2SeqInput {
     var expectedSequence: Tensor<Int32>?
     var inputSequence: Tensor<Int32>
+    var compilerCrashWorkaroundStartOutputLogits: Tensor<Float>
     var maxLength: Int
     var startToken: Int32
     var endToken: Int32
@@ -229,10 +230,11 @@ struct Seq2Seq: Module {
         var currentDecoderState = decoderInputState
         var cumulativeAttnLogits = Tensor<Float>(zeros: [])
 
-        var outputLogits = Tensor<Float>()
-        
-        if let expectedSequence = input.expectedSequence /* [seqlen, 1] */ {
-            // teacher forcing
+        var outputLogits: Tensor<Float> = input.compilerCrashWorkaroundStartOutputLogits
+
+        if input.expectedSequence != nil /* [seqlen, 1] */ {
+            let expectedSequence = input.expectedSequence!
+//            // teacher forcing
             for t in 0 ..< (expectedSequence.shape[0] - 1) {
                 let decoderInput = DecoderInput(
                     token: expectedSequence[t + 1],
@@ -244,14 +246,14 @@ struct Seq2Seq: Module {
                 currentDecoderState = output.state
                 cumulativeAttnLogits = output.cumulativeAttentionLogits
 
-                if true {
-                    outputLogits = output.logits.reshaped(to: [1, 1, -1])
-                } else {
+                if outputLogits.shape != [] {
                     outputLogits = Tensor(stacking: [outputLogits, output.logits.reshaped(to: [1, 1, -1])], alongAxis: 0)
+                } else {
+                    outputLogits = output.logits.reshaped(to: [1, 1, -1])
                 }
             }
         } else {
-            // no teacher forcing
+//            // no teacher forcing
             var previousToken = Tensor([input.startToken])
 
             for t in 0 ..< input.maxLength {
@@ -266,10 +268,10 @@ struct Seq2Seq: Module {
                 cumulativeAttnLogits = output.cumulativeAttentionLogits
                 previousToken = output.logits.flattened().argmax()
 
-                if outputLogits.shape == [] {
-                    outputLogits = output.logits.reshaped(to: [1, 1, -1])
-                } else {
+                if outputLogits.shape != [] {
                     outputLogits = Tensor(stacking: [outputLogits, output.logits.reshaped(to: [1, 1, -1])], alongAxis: 0)
+                } else {
+                    outputLogits = output.logits.reshaped(to: [1, 1, -1])
                 }
 
                 if previousToken.scalars[0] == input.endToken {
@@ -277,7 +279,7 @@ struct Seq2Seq: Module {
                 }
             }
         }
-        
+
         return outputLogits
     }
 }
